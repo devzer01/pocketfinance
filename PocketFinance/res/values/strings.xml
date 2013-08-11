@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pocket Finance</string>
+    <string name="action_settings">Settings</string>
+	<string name="action_expence">Expense</string>
+	<string name="expence">Expense</string>
+	<string name="category">Category</string>
+	<string name="save">Save</string>
+	<string name="cancel">Cancel</string>
+	<string name="amount">250</string>
+	<string name="todays_amount">Today</string>
+	<string name="monthly">This Month</string>
+	<string name="daily_avg">Daily Average</string>
+	<string name="enter_expense">Expense Entry</string>
+	<string name="undo">Undo</string>
+	<string name="snapshot">Expense Summary</string>
+	<string name="date">Date</string>
+	<string name="time">Time</string>
+</resources>
