@@ -15,8 +15,10 @@ import com.gems.pocketfinance.model.Expense;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.v4.app.DialogFragment;
+import android.support.v4.widget.SimpleCursorAdapter;
 import android.text.InputType;
 import android.text.format.DateFormat;
 import android.util.Log;
@@ -40,12 +42,13 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.TextView.OnEditorActionListener;
+import android.database.Cursor;
 import android.database.SQLException;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
 import android.app.DatePickerDialog;
 
-public class MainActivity extends SherlockFragmentActivity {
+public class MainActivity extends SherlockFragmentActivity implements Parcelable {
 
 	protected ExpenseDataSource expenseDs = null;
 	
@@ -58,6 +61,9 @@ public class MainActivity extends SherlockFragmentActivity {
 	protected EditText date = null;
 	protected EditText time = null;
 	
+	protected Spinner spinner = null;
+	
+	protected SimpleCursorAdapter adapter = null;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -67,24 +73,36 @@ public class MainActivity extends SherlockFragmentActivity {
 		if (expenseDs == null) expenseDs = new ExpenseDataSource(this);
 		expenseDs.open();
 		
+		Cursor cursor = expenseDs.getCategories();
 		
-		final Spinner spinner = (Spinner) findViewById(R.id.s_category);
-		ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-		        R.array.expence_category, android.R.layout.simple_spinner_item);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		spinner = (Spinner) findViewById(R.id.s_category);
+		
+		String[] from =  { "category" };
+		int[] to = { android.R.id.text1 };
+		
+	
+		
+		adapter = new SimpleCursorAdapter(this, android.R.layout.simple_spinner_item, cursor, from, to);
+		//adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		spinner.setAdapter(adapter);
+		
+		
 		
 		spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
 
 			public void onItemSelected(AdapterView<?> arg0, View arg1,
 					int arg2, long arg3) {
 				
-				String string = (String)arg0.getSelectedItem();
-				Log.d("Selected Item", string);
+				Cursor cursor = (Cursor)arg0.getSelectedItem();
 				
-				if (string.contains("Rent")) {
+				if (cursor.getString(cursor.getColumnIndex("category")).contains("New..")) {
 					NewCategoryDialog newCategoryDialog = new NewCategoryDialog();
-	        		newCategoryDialog.show(getSupportFragmentManager(), "price_per_pack_dialog");	
+					Bundle bundle = new Bundle();
+					bundle.putParcelable("ds", expenseDs);
+					bundle.putParcelable("main", MainActivity.this);
+					newCategoryDialog.setArguments(bundle);
+	        		newCategoryDialog.show(getSupportFragmentManager(), "new_category");
+	        		
 				}
 				
 			}
@@ -171,6 +189,19 @@ public class MainActivity extends SherlockFragmentActivity {
 			
 		});
 		
+	}
+	
+	public void setNewCategoryAndUpdate(int category)
+	{
+		Cursor cursor = expenseDs.getCategories();
+		
+		String[] from =  { "category" };
+		int[] to = { android.R.id.text1 };
+				
+		adapter = new SimpleCursorAdapter(this, android.R.layout.simple_spinner_item, cursor, from, to);
+		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		spinner.setAdapter(adapter);
+		spinner.setSelection(category);
 	}
 	
 	public void setDate(String date)
@@ -268,20 +299,22 @@ public class MainActivity extends SherlockFragmentActivity {
 	
 	public static class NewCategoryDialog extends DialogFragment implements OnEditorActionListener {
 
-    	
-
 	    private EditText mEditText;
-	    
-	    private MainActivity activity;
+	    private ExpenseDataSource expenseDs;
+	    private MainActivity mainActivity;
 
 	    public NewCategoryDialog()
 	    {
-	    	
 	    }
 
 	    @Override
 	    public View onCreateView(LayoutInflater inflater, ViewGroup container,
 	            Bundle savedInstanceState) {
+	    	
+	    	Bundle bundle = this.getArguments();
+	    	expenseDs = (ExpenseDataSource) bundle.getParcelable("ds");
+	    	mainActivity = (MainActivity) bundle.getParcelable("main");
+	    	
 	        View view = inflater.inflate(R.layout.new_category_dialog, container);
 	        mEditText = (EditText) view.findViewById(R.id.txt_category);
 	        getDialog().setTitle("Enter Expense Category");
@@ -290,28 +323,39 @@ public class MainActivity extends SherlockFragmentActivity {
 	        mEditText.requestFocus();
 	        mEditText.setOnEditorActionListener(this);
 	        
+	        Button saveCategory = (Button)view.findViewById(R.id.save_category);
+	        saveCategory.setOnClickListener(new OnClickListener() {
+
+				@Override
+				public void onClick(View arg0) {
+					String category = mEditText.getText().toString();
+					int category_id = (int) expenseDs.addCategory(category);
+					mainActivity.setNewCategoryAndUpdate(category_id);
+					NewCategoryDialog.this.dismiss();
+				}
+	        	
+	        });
+	        
 	        return view;
 	    }
 	    
 	    @Override
 	    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-	        if (EditorInfo.IME_ACTION_DONE == actionId) {
-//	        	SharedPreferences settings = getActivity().getSharedPreferences("SmokersLive", 0);
-//				
-//	        	SharedPreferences.Editor editor = settings.edit();
-//	        	
-//	        	editor.putString("pppack", mEditText.getText().toString());
-//	        	editor.commit();
-//	        	this.activity.setPricePack(Double.parseDouble(mEditText.getText().toString()));
-//	        	this.activity.SetToday();
-//	        	this.activity.SetAllTime();
-//	        	EditPricePerPackDialogListener activity = (EditPricePerPackDialogListener) getActivity();
-//	            activity.onFinishEditDialog(mEditText.getText().toString());
-	        	this.dismiss();
-	            return true;
-	        }
-	        return false;
+	        this.dismiss();
+	        return true;
 	    }
 }
+
+	@Override
+	public int describeContents() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel dest, int flags) {
+		// TODO Auto-generated method stub
+		
+	}
 	
 }

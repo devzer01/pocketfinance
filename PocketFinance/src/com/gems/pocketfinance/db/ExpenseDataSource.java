@@ -14,11 +14,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.text.format.DateFormat;
 import android.text.format.Time;
 import android.util.Log;
 
-public class ExpenseDataSource {
+public class ExpenseDataSource implements Parcelable {
 
 	// Database fields
 	private SQLiteDatabase database;
@@ -58,6 +60,12 @@ public class ExpenseDataSource {
 		expense.setId(lastId);
 		
 		return expense;
+	}
+	
+	public Cursor getCategories()
+	{
+		String[] cols = { "*" };
+		return database.query(MySQLiteHelper.TABLE_CATEGORY, cols, null, null, null, null, null);
 	}
 	
 	public void rollback()
@@ -141,5 +149,26 @@ public class ExpenseDataSource {
 
 		
 		return counts;
+	}
+	
+	public long addCategory(String category)
+	{
+		ContentValues contentValues = new ContentValues(1);
+		contentValues.put("category", category);
+		
+		return database.insert(MySQLiteHelper.TABLE_CATEGORY, null, contentValues);
+	}
+	
+
+	@Override
+	public int describeContents() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public void writeToParcel(Parcel arg0, int arg1) {
+		// TODO Auto-generated method stub
+		
 	}
 }
